@@ -58,20 +58,21 @@ template Transaction(levels, nIns, nOuts) {
         inCommitmentHasher[tx] = Poseidon(5);
         inCommitmentHasher[tx].inputs[0] <== inAmount[tx];
         inCommitmentHasher[tx].inputs[1] <== privateChainID;
-        inCommitmentHasher[tx].inputs[2] <== tokenAddress;//add token addy
-        inCommitmentHasher[tx].inputs[3] <== inKeypair[tx].publicKey;
-        inCommitmentHasher[tx].inputs[4] <== inBlinding[tx];
+        inCommitmentHasher[tx].inputs[2] <== inKeypair[tx].publicKey;
+        inCommitmentHasher[tx].inputs[3] <== inBlinding[tx];
+        inCommitmentHasher[tx].inputs[4] <== tokenAddress;
 
         inSignature[tx] = Signature();
         inSignature[tx].privateKey <== inPrivateKey[tx];
         inSignature[tx].commitment <== inCommitmentHasher[tx].out;
         inSignature[tx].merklePath <== inPathIndices[tx];
 
-        inNullifierHasher[tx] = Poseidon(4);
+        inNullifierHasher[tx] = Poseidon(5);
         inNullifierHasher[tx].inputs[0] <== inCommitmentHasher[tx].out;
         inNullifierHasher[tx].inputs[1] <== inPathIndices[tx];
         inNullifierHasher[tx].inputs[2] <== inSignature[tx].out;
         inNullifierHasher[tx].inputs[3] <== chainID;
+        inNullifierHasher[tx].inputs[4] <== tokenAddress;
         inNullifierHasher[tx].out === inputNullifier[tx];
 
         inTree[tx] = MerkleProof(levels);
@@ -103,9 +104,9 @@ template Transaction(levels, nIns, nOuts) {
         outCommitmentHasher[tx] = Poseidon(5);
         outCommitmentHasher[tx].inputs[0] <== outAmount[tx];
         outCommitmentHasher[tx].inputs[1] <== chainID;
-        outCommitmentHasher[tx].inputs[2] <== tokenAddress;
-        outCommitmentHasher[tx].inputs[3] <== outPubkey[tx];
-        outCommitmentHasher[tx].inputs[4] <== outBlinding[tx];
+        outCommitmentHasher[tx].inputs[2] <== outPubkey[tx];
+        outCommitmentHasher[tx].inputs[3] <== outBlinding[tx];
+        outCommitmentHasher[tx].inputs[4] <== tokenAddress;
         outCommitmentHasher[tx].out === outputCommitment[tx];
 
         // Check that amount fits into 248 bits to prevent overflow

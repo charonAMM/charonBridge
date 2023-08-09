@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "circuit": "./scripts/buildCircuit.sh 2 && ./scripts/buildCircuit.sh 16",
+    "compile:hasher": "npx hardhat hasher",
+    "compile": "npx hardhat compile && yarn compile:hasher",
+    "build": "npm run circuit && npm run compile",
+    "test": "npx hardhat test",
+    "circom_build": "mkdir -p build && circom --version && circom circuits/transaction2.circom --r1cs --wasm -o build && circom circuits/transaction16.circom --r1cs --wasm -o build"
   },
   "repository": {
     "type": "git",
@@ -18,5 +23,9 @@
   "homepage": "https://github.com/charonAMM/charonBridge#readme",
   "devDependencies": {
     "hardhat": "^2.17.0"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.0"
   }
 }
