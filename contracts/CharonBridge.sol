@@ -8,7 +8,7 @@ import "./interfaces/IERC20.sol";
 import "./interfaces/IVerifier.sol";
 
 
-contract Charon is MerkleTreeWithHistory, Token{
+contract CharonBridge is MerkleTreeWithHistory, Token{
     /*storage*/
     struct PartnerContract{
       uint256 chainID;//EVM chain ID
@@ -42,11 +42,9 @@ contract Charon is MerkleTreeWithHistory, Token{
     IVerifier public immutable verifier2; //implementation/address of the two input veriifier contract
     IVerifier public immutable verifier16;//implementation/address of the sixteen input veriifier contract
     PartnerContract[] partnerContracts;//list of connected contracts for this deployment
-    address public controller;//controller adddress (used for initializing contracts, then should be CFC for accepting fees)
     address[] oracles;//address of the oracle to use for the system
     bool private _lock;//to prevent reentracy
     uint256 public immutable chainID; //chainID of this charon instance
-    uint256 public immutable fee;//fee when liquidity is withdrawn or trade happens (1e18 = 100% fee)
     mapping(bytes32 => bool) nullifierHashes;//zk proof hashes to tell whether someone withdrew
     mapping(bytes32 => uint256) depositIdByCommitmentHash;//gives you a deposit ID (used by tellor) given a commitment
     mapping(address => uint256) public depositAmountByToken;
@@ -65,7 +63,6 @@ contract Charon is MerkleTreeWithHistory, Token{
      * @param _verifier2 address of the verifier contract
      * @param _verifier16 address of the verifier16 contract
      * @param _hasher address of the hasher contract (mimC precompile)
-     * @param _fee fee when withdrawing liquidity or trading (pct of tokens)
      * @param _oracles address array of oracle contracts
      * @param _merkleTreeHeight merkleTreeHeight (should match that of circom compile)
      * @param _chainID chainID of this chain
@@ -76,7 +73,6 @@ contract Charon is MerkleTreeWithHistory, Token{
     constructor(address _verifier2,
                 address _verifier16,
                 address _hasher,
-                uint256 _fee,
                 address[] memory _oracles,
                 uint32 _merkleTreeHeight,
                 uint256 _chainID,
@@ -88,8 +84,6 @@ contract Charon is MerkleTreeWithHistory, Token{
               Token(_name,_symbol){
         verifier2 = IVerifier(_verifier2);
         verifier16 = IVerifier(_verifier16);
-        fee = _fee;
-        controller = msg.sender;
         chainID = _chainID;
         oracles = _oracles;
         isMintChain = _isMintChain;
@@ -120,7 +114,7 @@ contract Charon is MerkleTreeWithHistory, Token{
     }
 
     /**
-     * @dev Allows the controller to start the system
+     * @dev Starts the system
      * @param _partnerChains list of chainID's in this Charon system
      * @param _partnerAddys list of corresponding addresses of charon contracts on chains in _partnerChains
      */
@@ -128,11 +122,11 @@ contract Charon is MerkleTreeWithHistory, Token{
                       address[] memory _partnerAddys
                      ) 
                       external{
-        require(msg.sender == controller);
+        require(partnerContracts.length == 0);
+        require(_partnerChains.length > 0);
         for(uint256 _i; _i < _partnerAddys.length; _i++){
           partnerContracts.push(PartnerContract(_partnerChains[_i],_partnerAddys[_i]));
         } 
-        controller = address(0);
     }
 
   
@@ -197,12 +191,6 @@ contract Charon is MerkleTreeWithHistory, Token{
         _lock = false;
     }
       
-    function _getTokenAddress(address _token) internal returns(address){
-      if(mintChainTokenAddy[_token] != address(0)){
-        return mintChainTokenAddy[_token];
-      }
-      //make new contract, return addy
-    }
     //getters
     /**
      * @dev allows you to find a commitment for a given depositId

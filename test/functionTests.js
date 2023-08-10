@@ -33,37 +33,24 @@ describe("charon tests", function () {
         let Hasher = await ethers.getContractFactory(HASH.abi, HASH.bytecode);
         hasher = await Hasher.deploy();
         await hasher.deployed()
-        token = await deploy("MockERC20",accounts[1].address,"Dissapearing Space Monkey","DSM")
+        token = await deploy("MintableToken",accounts[0].address,accounts[0].address,"Dissapearing Space Monkey","DSM")
         await token.mint(accounts[0].address,web3.utils.toWei("1000000"))//1M
+        token2 = await deploy("MintableToken",accounts[0].address,accounts[0].address,"Dissapearing Space Monkey2","DSM2")
+        await token2.mint(accounts[0].address,web3.utils.toWei("1000000"))//1M
         //deploy tellor
         let TellorOracle = await ethers.getContractFactory(abi, bytecode);
         tellor = await TellorOracle.deploy();
         tellor2 = await TellorOracle.deploy();
         await tellor2.deployed();
         await tellor.deployed();
-        mockNative = await deploy("MockNativeBridge")
-        mockNative2 = await deploy("MockNativeBridge")
         tellorBridge = await deploy("TellorBridge", tellor.address)
         tellorBridge2 = await deploy("TellorBridge", tellor2.address)
-        p2e = await deploy("MockPOLtoETHBridge", tellor2.address, mockNative2.address)
-        e2p = await deploy("MockETHtoPOLBridge", tellor.address,mockNative.address, mockNative.address)
-        await e2p.setFxChildTunnel(mockNative.address)
-        await mockNative.setUsers(tellorBridge.address, p2e.address, e2p.address)
-        await mockNative2.setUsers(tellorBridge.address, p2e.address, e2p.address)
-        charon = await deploy("Charon",verifier2.address,verifier16.address,hasher.address,token.address,fee,[tellorBridge.address],HEIGHT,1,"Charon Pool Token","CPT")
-        //now deploy on other chain (same chain, but we pretend w/ oracles)
-        token2 = await deploy("MockERC20",accounts[1].address,"Dissapearing Space Monkey2","DSM2")
-        await token2.mint(accounts[0].address,web3.utils.toWei("1000000"))//1M
-        charon2 = await deploy("Charon",verifier2.address,verifier16.address,hasher.address,token2.address,fee,[tellorBridge2.address],HEIGHT,2,"Charon Pool Token2","CPT2");
+        charon = await deploy("CharonBridge",verifier2.address,verifier16.address,hasher.address,[tellorBridge.address],HEIGHT,1,"Charon Pool Token","CPT",false)
+        charon2 = await deploy("CharonBridge",verifier2.address,verifier16.address,hasher.address,[tellorBridge2.address],HEIGHT,2,"Charon Pool Token2","CPT2",true);
         await tellorBridge.setPartnerInfo(charon2.address, 2);
         await tellorBridge2.setPartnerInfo(charon.address,1);
-        //now set both of them. 
-        await token.approve(charon.address,web3.utils.toWei("100"))//100
-        await token2.approve(charon2.address,web3.utils.toWei("100"))//100
-        cfc = await deploy('MockCFC',token.address,chd.address)
-        cfc2 = await deploy('MockCFC',token2.address,chd2.address)
-        await charon.finalize([2],[charon2.address],web3.utils.toWei("100"),web3.utils.toWei("1000"),chd.address,cfc.address);
-        await charon2.finalize([1],[charon.address],web3.utils.toWei("100"),web3.utils.toWei("1000"),chd2.address, cfc2.address);
+        await charon.finalize([2],[charon2.address]);
+        await charon2.finalize([1],[charon.address]);
     });
     function poseidon(inputs){
       let val = builtPoseidon(inputs)
@@ -85,9 +72,6 @@ describe("charon tests", function () {
         assert(await charon.hasher() == hasher.address, "hasher should be set")
         assert(await charon.verifier2() == verifier2.address, "verifier2 should be set")
         assert(await charon.verifier16() == verifier16.address, "verifier16 should be set")
-        assert(await charon.token() == token.address, "token should be set")
-        assert(await charon.fee() == fee, "fee should be set")
-        assert(await charon.controller() == cfc.address, "controller should be set")
         assert(await charon.chainID() == 1, "chainID should be correct")
       });
 //       it("Test depositToOtherChain", async function() {
