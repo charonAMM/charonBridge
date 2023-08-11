@@ -12,22 +12,23 @@ class Utxo {
    * @param {number|null} index UTXO index in the merkle tree
    * * @param {number|null} chainID evm chain ID
    */
-  constructor({ amount = 0,myHashFunc = poseidonHash, keypair = new Keypair({myHashFunc:myHashFunc}), blinding = randomBN(), index = null, chainID = 0 } = {}) {
+  constructor({ amount = 0,myHashFunc = poseidonHash, keypair = new Keypair({myHashFunc:myHashFunc}), blinding = randomBN(), index = null, chainID = 0, tokenAddress = null } = {}) {
     this.amount = BigNumber.from(amount)
     this.blinding = BigNumber.from(blinding)
     this.keypair = keypair
     this.index = index
     this.chainID = chainID
+    this.tokenAddress = tokenAddress
   }
 
   /**
    * Returns commitment for this UTXO
-   *
+   * 
    * @returns {BigNumber}
    */
   getCommitment(poseidonFunc) {
     if (!this._commitment) {
-      this._commitment = poseidonFunc([this.amount, this.chainID, this.keypair.pubkey, this.blinding])
+      this._commitment = poseidonFunc([this.amount, this.chainID, this.keypair.pubkey, this.blinding, this.tokenAddress])
     }
     return this._commitment
   }
@@ -53,7 +54,7 @@ class Utxo {
         merklePath: this.index || 0,
         hashFunc: poseidonFunc
       }) : 0
-      this._nullifier = poseidonFunc([this.getCommitment(poseidonFunc), this.index || 0, signature, this.chainID])
+      this._nullifier = poseidonFunc([this.getCommitment(poseidonFunc), this.index || 0, signature, this.chainID, this.tokenAddress])
     }
     return this._nullifier
   }

@@ -21,6 +21,7 @@ async function buildMerkleTree(charon, hasherFunc) {
 async function getProof({
   inputs,
   outputs,
+  tokenAddress,
   tree,
   extAmount,
   fee,
@@ -74,6 +75,7 @@ async function getProof({
 
   const extDataHash = getExtDataHash(extData)
   let input = {
+    tokenAddress: tokenAddress,
     root: await tree.root,
     chainID: privateChainID,
     publicAmount: BigNumber.from(extAmount).sub(fee).add(FIELD_SIZE).mod(FIELD_SIZE).toString(),
@@ -119,6 +121,7 @@ async function getProof({
 
 async function prepareTransaction({
   charon,
+  tokenAddress,
   inputs = [],
   outputs = [],
   fee = 0,
@@ -133,10 +136,10 @@ async function prepareTransaction({
     throw new Error('Incorrect inputs/outputs count')
   }
   while (inputs.length !== 2 && inputs.length < 16) {
-    inputs.push(new Utxo({myHashFunc:myHasherFunc, chainID: privateChainID}))
+    inputs.push(new Utxo({myHashFunc:myHasherFunc, chainID: privateChainID, tokenAddress: tokenAddress}))
   }
   while (outputs.length < 2) {
-    outputs.push(new Utxo({myHashFunc:myHasherFunc, chainID: privateChainID}))
+    outputs.push(new Utxo({myHashFunc:myHasherFunc, chainID: privateChainID, tokenAddress: tokenAddress}))
   }
   let extAmount = BigNumber.from(fee)
     .add(outputs.reduce((sum, x) => sum.add(x.amount), BigNumber.from(0)))
@@ -144,6 +147,7 @@ async function prepareTransaction({
 
   const { args, extData } = await getProof({
     inputs,
+    tokenAddress,
     outputs,
     tree: await buildMerkleTree(charon, myHasherFunc2),
     extAmount,
